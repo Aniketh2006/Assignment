@@ -7,6 +7,7 @@ import { API_URL } from '../config';
 const Requests = () => {
   const [incoming, setIncoming] = useState([]);
   const [outgoing, setOutgoing] = useState([]);
+  const [loading, setLoading] = useState(false);
   const { token } = useAuth();
   const navigate = useNavigate();
 
@@ -20,6 +21,7 @@ const Requests = () => {
 
   const fetchRequests = async () => {
     try {
+      setLoading(true);
       const [inRes, outRes] = await Promise.all([
         axios.get(`${API_URL}/swap/incoming`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -28,22 +30,38 @@ const Requests = () => {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
+      console.log('✅ Incoming requests:', inRes.data);
+      console.log('✅ Outgoing requests:', outRes.data);
       setIncoming(inRes.data);
       setOutgoing(outRes.data);
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error fetching requests:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleResponse = async (id, accept) => {
     try {
-      await axios.post(`${API_URL}/swap/response/${id}`, { accept }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      alert(accept ? 'Swap accepted!' : 'Swap rejected');
-      fetchRequests();
+      console.log(`📤 ${accept ? 'Accepting' : 'Rejecting'} swap request ${id}`);
+      
+      const response = await axios.post(
+        `${API_URL}/swap/response/${id}`, 
+        { accept }, 
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      console.log('✅ Response successful:', response.data);
+      alert(accept ? '✅ Swap accepted! Events exchanged.' : '❌ Swap rejected.');
+      
+      // Refresh requests
+      await fetchRequests();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to respond');
+      console.error('❌ Error responding to swap:', err);
+      console.error('Error details:', err.response?.data);
+      alert(err.response?.data?.error || 'Failed to respond to request');
     }
   };
 
@@ -59,6 +77,7 @@ const Requests = () => {
       }
       
       return date.toLocaleString('en-US', {
+        weekday: 'short',
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -72,30 +91,46 @@ const Requests = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="container">
+        <div className="dashboard-header">
+          <h1>📬 Swap Requests</h1>
+        </div>
+        <div className="loading-state">Loading requests...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', marginTop: '2rem' }}>
-        📬 Swap Requests
-      </h1>
+      <div className="dashboard-header">
+        <h1>📬 Swap Requests</h1>
+      </div>
 
-      <h2 style={{ fontSize: '1.8rem', marginTop: '2rem', marginBottom: '1rem' }}>
-        Incoming Requests
-      </h2>
+      <h2 className="section-title">Incoming Requests</h2>
       {incoming.length === 0 ? (
-        <div className="card">No incoming requests</div>
+        <div className="empty-state">
+          <h3>📭 No Incoming Requests</h3>
+          <p>You don't have any swap requests yet.</p>
+        </div>
       ) : (
-        <div className="grid">
+        <div className="events-grid">
           {incoming.map(req => (
-            <div key={req.id} className="card">
-              <h3 className="card-title">Swap Request from {req.requesterName || 'Unknown User'}</h3>
-              <p className="card-meta">
-                <strong>They offer:</strong> {req.requesterEventTitle || 'N/A'}<br />
+            <div key={req.id} className="event-card">
+              <h3>Swap Request from {req.requesterName || 'Unknown User'}</h3>
+              <div className="card-meta">
+                <strong>They offer:</strong><br />
+                📝 {req.requesterEventTitle || 'N/A'}<br />
                 📅 {req.requesterStartTime ? formatDateTime(req.requesterStartTime) : 'N/A'}<br /><br />
-                <strong>For your:</strong> {req.requesteeEventTitle || 'N/A'}<br />
+                
+                <strong>For your:</strong><br />
+                📝 {req.requesteeEventTitle || 'N/A'}<br />
                 📅 {req.requesteeStartTime ? formatDateTime(req.requesteeStartTime) : 'N/A'}
-              </p>
+              </div>
+              
               {req.status === 'PENDING' ? (
-                <div className="flex gap-2 mt-2">
+                <div className="button-row">
                   <button 
                     onClick={() => handleResponse(req.id, true)} 
                     className="btn btn-success"
@@ -110,7 +145,9 @@ const Requests = () => {
                   </button>
                 </div>
               ) : (
-                <span className={`status-badge ${req.status === 'ACCEPTED' ? 'status-swappable' : 'status-busy'}`}>
+                <span className={`status-badge ${
+                  req.status === 'ACCEPTED' ? 'status-swappable' : 'status-busy'
+                }`}>
                   {req.status}
                 </span>
               )}
@@ -119,22 +156,27 @@ const Requests = () => {
         </div>
       )}
 
-      <h2 style={{ fontSize: '1.8rem', marginTop: '3rem', marginBottom: '1rem' }}>
-        Outgoing Requests
-      </h2>
+      <h2 className="section-title">Outgoing Requests</h2>
       {outgoing.length === 0 ? (
-        <div className="card">No outgoing requests</div>
+        <div className="empty-state">
+          <h3>📭 No Outgoing Requests</h3>
+          <p>You haven't sent any swap requests yet.</p>
+        </div>
       ) : (
-        <div className="grid">
+        <div className="events-grid">
           {outgoing.map(req => (
-            <div key={req.id} className="card">
-              <h3 className="card-title">Request to {req.requesteeName || 'Unknown User'}</h3>
-              <p className="card-meta">
-                <strong>You offered:</strong> {req.requesterEventTitle || 'N/A'}<br />
+            <div key={req.id} className="event-card">
+              <h3>Request to {req.requesteeName || 'Unknown User'}</h3>
+              <div className="card-meta">
+                <strong>You offered:</strong><br />
+                📝 {req.requesterEventTitle || 'N/A'}<br />
                 📅 {req.requesterStartTime ? formatDateTime(req.requesterStartTime) : 'N/A'}<br /><br />
-                <strong>For their:</strong> {req.requesteeEventTitle || 'N/A'}<br />
+                
+                <strong>For their:</strong><br />
+                📝 {req.requesteeEventTitle || 'N/A'}<br />
                 📅 {req.requesteeStartTime ? formatDateTime(req.requesteeStartTime) : 'N/A'}
-              </p>
+              </div>
+              
               <span className={`status-badge ${
                 req.status === 'PENDING' ? 'status-swappending' :
                 req.status === 'ACCEPTED' ? 'status-swappable' : 'status-busy'
