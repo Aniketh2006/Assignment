@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { user } = require('../models');
-const SECRET = 'your_jwt_secret_key_change_in_production';
+const SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_in_production';
 
 router.post('/signup', (req, res) => {
   const { name, email, password } = req.body;
@@ -48,7 +48,7 @@ router.post('/login', (req, res) => {
       const token = jwt.sign({ id: u.id, email: u.email, name: u.name }, SECRET, { expiresIn: '7d' });
       console.log('✅ User logged in:', email);
       
-      // IMPORTANT: Send user data along with token
+      // Send user data along with token
       res.json({ 
         token, 
         user: { 
