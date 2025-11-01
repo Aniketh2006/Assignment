@@ -7,47 +7,68 @@ const EventForm = ({ onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (!title || !startTime || !endTime) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    if (new Date(endTime) <= new Date(startTime)) {
+      alert('End time must be after start time');
+      return;
+    }
+
     onSubmit({ title, startTime, endTime });
+    
+    // Reset form
     setTitle('');
     setStartTime('');
     setEndTime('');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card">
-      <h3 className="card-title">Create New Event</h3>
-      <div className="form-group">
-        <input
-          type="text"
-          placeholder="Event Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="form-input"
-          required
-        />
-      </div>
-      <div className="form-group">
-        <label className="form-label">Start Time</label>
-        <input
-          type="datetime-local"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-          className="form-input"
-          required
-        />
-      </div>
-      <div className="form-group">
-        <label className="form-label">End Time</label>
-        <input
-          type="datetime-local"
-          value={endTime}
-          onChange={(e) => setEndTime(e.target.value)}
-          className="form-input"
-          required
-        />
-      </div>
-      <button type="submit" className="btn btn-primary">Create Event</button>
-    </form>
+    <div className="event-form">
+      <h2>📝 Create New Event</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label className="form-label">Event Title</label>
+          <input
+            type="text"
+            className="form-control"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g., Team Meeting"
+            required
+          />
+        </div>
+        
+        <div className="form-group">
+          <label className="form-label">Start Time</label>
+          <input
+            type="datetime-local"
+            className="form-control"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            required
+          />
+        </div>
+        
+        <div className="form-group">
+          <label className="form-label">End Time</label>
+          <input
+            type="datetime-local"
+            className="form-control"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            required
+          />
+        </div>
+        
+        <button type="submit" className="btn btn--primary btn--full-width">
+          ✨ Create Event
+        </button>
+      </form>
+    </div>
   );
 };
 

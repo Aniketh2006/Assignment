@@ -65,13 +65,12 @@ const Dashboard = () => {
 
   return (
     <div className="container">
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', marginTop: '2rem' }}>
-        📅 My Dashboard
-      </h1>
+      <div className="dashboard-header">
+  	<h1>📅 My Dashboard</h1>
+      </div>
+
       <EventForm onSubmit={handleCreateEvent} />
-      <h2 style={{ fontSize: '1.8rem', marginTop: '3rem', marginBottom: '1rem' }}>
-        Your Events
-      </h2>
+      <h2 className="section-title">Your Events</h2>
       {loading ? (
         <p className="card-meta">Loading events...</p>
       ) : events.length === 0 ? (
