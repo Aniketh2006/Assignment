@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../auth/AuthProvider';
 import SwapModal from '../components/SwapModal';
+import { API_URL } from '../config';
 
 const Marketplace = () => {
-  const [slots, setSlots] = useState([]);
-  const [mySlots, setMySlots] = useState([]);
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const [swappableEvents, setSwappableEvents] = useState([]);
+  const [mySwappable, setMySwappable] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const { token } = useAuth();
   const navigate = useNavigate();
 
@@ -17,50 +17,45 @@ const Marketplace = () => {
       navigate('/login');
       return;
     }
-    fetchMarketplace();
-    fetchMySlots();
+    fetchSwappableEvents();
+    fetchMySwappable();
   }, [token]);
 
-  const fetchMarketplace = async () => {
+  const fetchSwappableEvents = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/events/swappable', {
+      const res = await axios.get(`${API_URL}/events/swappable`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSlots(res.data);
+      setSwappableEvents(res.data);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const fetchMySlots = async () => {
+  const fetchMySwappable = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/events', {
+      const res = await axios.get(`${API_URL}/events`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMySlots(res.data.filter(e => e.status === 'SWAPPABLE'));
+      setMySwappable(res.data.filter(e => e.status === 'SWAPPABLE'));
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleRequestSwap = (slot) => {
-    setSelectedSlot(slot);
-    setShowModal(true);
-  };
-
-  const handleSelectMySlot = async (mySlotId) => {
+  const handleRequestSwap = async (mySlotId) => {
     try {
-      await axios.post('http://localhost:3001/api/swap/request', {
+      await axios.post(`${API_URL}/swap/request`, {
         mySlotId,
-        theirSlotId: selectedSlot.id
+        theirSlotId: selectedEvent.id
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setShowModal(false);
       alert('Swap request sent!');
-      fetchMarketplace();
+      setSelectedEvent(null);
+      fetchSwappableEvents();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to send swap request');
+      alert(err.response?.data?.error || 'Failed to request swap');
     }
   };
 
@@ -76,44 +71,39 @@ const Marketplace = () => {
       <h1 style={{ fontSize: '2.5rem', marginBottom: '2rem', marginTop: '2rem' }}>
         🛒 Marketplace
       </h1>
-      <p className="card-meta mb-2">
-        Browse swappable slots from other users. You need at least one swappable slot to request a swap.
-      </p>
-      {slots.length === 0 ? (
-        <div className="card">
-          <p>No swappable slots available right now. Check back later!</p>
-        </div>
+      <p className="card-meta">Browse and request swappable time slots from other users</p>
+      {swappableEvents.length === 0 ? (
+        <div className="card">No swappable events available</div>
       ) : (
         <div className="grid">
-          {slots.map(slot => (
-            <div key={slot.id} className="card">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="card-title">{slot.title}</h3>
-                <span className="status-badge status-swappable">AVAILABLE</span>
-              </div>
+          {swappableEvents.map(event => (
+            <div key={event.id} className="card">
+              <h3 className="card-title">{event.title}</h3>
               <p className="card-meta">
-                👤 Owner: {slot.ownerName}<br />
-                📅 {formatDateTime(slot.startTime)}<br />
-                🕒 {formatDateTime(slot.endTime)}
+                👤 Owner: {event.ownerName}<br />
+                📅 Start: {formatDateTime(event.startTime)}<br />
+                ⏰ End: {formatDateTime(event.endTime)}
               </p>
+              <span className="status-badge status-swappable">{event.status}</span>
               <button 
-                onClick={() => handleRequestSwap(slot)} 
-                className="btn btn-primary mt-2"
-                disabled={mySlots.length === 0}
+                onClick={() => setSelectedEvent(event)} 
+                className="btn btn--primary"
+                style={{ marginTop: '1rem' }}
               >
-                {mySlots.length === 0 ? 'No Swappable Slots' : 'Request Swap'}
+                Request Swap
               </button>
             </div>
           ))}
         </div>
       )}
-      <SwapModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        mySlots={mySlots}
-        onSelectSlot={handleSelectMySlot}
-        theirEvent={selectedSlot}
-      />
+      {selectedEvent && (
+        <SwapModal
+          event={selectedEvent}
+          mySwappable={mySwappable}
+          onSelect={handleRequestSwap}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
     </div>
   );
 };

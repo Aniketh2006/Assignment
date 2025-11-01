@@ -4,9 +4,11 @@ import axios from 'axios';
 import { useAuth } from '../auth/AuthProvider';
 import EventList from '../components/EventList';
 import EventForm from '../components/EventForm';
+import { API_URL } from '../config';
 
 const Dashboard = () => {
   const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { token } = useAuth();
   const navigate = useNavigate();
 
@@ -20,34 +22,44 @@ const Dashboard = () => {
 
   const fetchEvents = async () => {
     try {
-      const res = await axios.get('http://localhost:3001/api/events', {
+      setLoading(true);
+      const res = await axios.get(`${API_URL}/events`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setEvents(res.data);
+      console.log('✅ Events fetched:', res.data);
+      setEvents(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error fetching events:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleCreateEvent = async (eventData) => {
     try {
-      await axios.post('http://localhost:3001/api/events', eventData, {
+      console.log('📝 Creating event:', eventData);
+      const res = await axios.post(`${API_URL}/events`, eventData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      fetchEvents();
+      console.log('✅ Event created:', res.data);
+      
+      await fetchEvents();
+      alert('Event created successfully!');
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error creating event:', err);
+      alert(err.response?.data?.error || 'Failed to create event');
     }
   };
 
   const handleMakeSwappable = async (id) => {
     try {
-      await axios.put(`http://localhost:3001/api/events/swappable/${id}`, {}, {
+      await axios.put(`${API_URL}/events/swappable/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('✅ Event marked as swappable');
       fetchEvents();
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error marking event as swappable:', err);
     }
   };
 
@@ -60,7 +72,9 @@ const Dashboard = () => {
       <h2 style={{ fontSize: '1.8rem', marginTop: '3rem', marginBottom: '1rem' }}>
         Your Events
       </h2>
-      {events.length === 0 ? (
+      {loading ? (
+        <p className="card-meta">Loading events...</p>
+      ) : events.length === 0 ? (
         <p className="card-meta">No events yet. Create your first event above!</p>
       ) : (
         <EventList events={events} onMakeSwappable={handleMakeSwappable} />

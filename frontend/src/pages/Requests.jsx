@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../auth/AuthProvider';
+import { API_URL } from '../config';
 
 const Requests = () => {
   const [incoming, setIncoming] = useState([]);
@@ -20,10 +21,10 @@ const Requests = () => {
   const fetchRequests = async () => {
     try {
       const [inRes, outRes] = await Promise.all([
-        axios.get('http://localhost:3001/api/swap/incoming', {
+        axios.get(`${API_URL}/swap/incoming`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        axios.get('http://localhost:3001/api/swap/outgoing', {
+        axios.get(`${API_URL}/swap/outgoing`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -36,7 +37,7 @@ const Requests = () => {
 
   const handleResponse = async (id, accept) => {
     try {
-      await axios.post(`http://localhost:3001/api/swap/response/${id}`, { accept }, {
+      await axios.post(`${API_URL}/swap/response/${id}`, { accept }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert(accept ? 'Swap accepted!' : 'Swap rejected');
@@ -52,7 +53,6 @@ const Requests = () => {
     try {
       const date = new Date(dateStr);
       
-      // Check if date is valid
       if (isNaN(date.getTime())) {
         console.warn('Invalid date:', dateStr);
         return dateStr;
@@ -150,4 +150,3 @@ const Requests = () => {
 };
 
 export default Requests;
-
